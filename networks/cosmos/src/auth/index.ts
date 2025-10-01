@@ -1,0 +1,1 @@
+export { createCosmosConfig } from './config';

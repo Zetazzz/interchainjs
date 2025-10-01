@@ -3,6 +3,160 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.17.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.17.5...@interchainjs/types@1.17.6) (2025-09-22)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.17.5](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.17.4...@interchainjs/types@1.17.5) (2025-09-16)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.17.4](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.17.3...@interchainjs/types@1.17.4) (2025-09-11)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.17.3](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.17.2...@interchainjs/types@1.17.3) (2025-08-26)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.17.2](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.17.1...@interchainjs/types@1.17.2) (2025-08-25)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.17.1](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.17.0...@interchainjs/types@1.17.1) (2025-08-22)
+
+**Note:** Version bump only for package @interchainjs/types
+
+# [1.17.0](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.7...@interchainjs/types@1.17.0) (2025-08-22)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.7](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.6...@interchainjs/types@1.16.7) (2025-08-19)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.5...@interchainjs/types@1.16.6) (2025-08-18)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.5](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.4...@interchainjs/types@1.16.5) (2025-08-18)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.4](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.3...@interchainjs/types@1.16.4) (2025-08-18)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.3](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.2...@interchainjs/types@1.16.3) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.2](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.1...@interchainjs/types@1.16.2) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.16.1](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.16.0...@interchainjs/types@1.16.1) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+# [1.16.0](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.15.0...@interchainjs/types@1.16.0) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.15.0...@interchainjs/types@1.13.6) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.15.0...@interchainjs/types@1.13.6) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.15.0...@interchainjs/types@1.13.6) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.15.0...@interchainjs/types@1.13.6) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+# [1.15.0](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.14.1...@interchainjs/types@1.15.0) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.14.1](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.14.0...@interchainjs/types@1.14.1) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+# [1.14.0](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.8...@interchainjs/types@1.14.0) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.8](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.7...@interchainjs/types@1.13.8) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.7](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.7...@interchainjs/types@1.13.7) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.7](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.6...@interchainjs/types@1.13.7) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.5](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.6...@interchainjs/types@1.13.5) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.6](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.5...@interchainjs/types@1.13.6) (2025-08-14)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.5](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.4...@interchainjs/types@1.13.5) (2025-08-13)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.4](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.3...@interchainjs/types@1.13.4) (2025-08-13)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.3](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.2...@interchainjs/types@1.13.3) (2025-08-13)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.2](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.1-beta.3...@interchainjs/types@1.13.2) (2025-08-13)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.1-beta.3](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.1-beta.2...@interchainjs/types@1.13.1-beta.3) (2025-08-10)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.1-beta.2](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.1-beta.1...@interchainjs/types@1.13.1-beta.2) (2025-08-08)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.13.1-beta.1](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.13.0...@interchainjs/types@1.13.1-beta.1) (2025-08-08)
+
+**Note:** Version bump only for package @interchainjs/types
+
+# [1.13.0](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.12.2...@interchainjs/types@1.13.0) (2025-08-06)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.12.2](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.12.1...@interchainjs/types@1.12.2) (2025-08-06)
+
+**Note:** Version bump only for package @interchainjs/types
+
+## [1.12.1](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.12.0...@interchainjs/types@1.12.1) (2025-08-05)
+
+**Note:** Version bump only for package @interchainjs/types
+
+# [1.12.0](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.11.18...@interchainjs/types@1.12.0) (2025-08-03)
+
+### Bug Fixes
+
+- fix build errors for signers and wallets ([a41e3fc](https://github.com/hyperweb-io/interchainjs/commit/a41e3fce100c57e2332a1e4c50f6d7bb291fca20))
+
 ## [1.11.18](https://github.com/hyperweb-io/interchainjs/compare/@interchainjs/types@1.11.17...@interchainjs/types@1.11.18) (2025-06-20)
 
 **Note:** Version bump only for package @interchainjs/types

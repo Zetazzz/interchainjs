@@ -1,7 +1,7 @@
 import { Any, AnyProtoMsg, AnyAmino } from "../../../google/protobuf/any";
 import { Timestamp } from "../../../google/protobuf/timestamp";
-import { StoreCodeAuthorization, StoreCodeAuthorizationProtoMsg, ContractExecutionAuthorization, ContractExecutionAuthorizationProtoMsg, ContractMigrationAuthorization, ContractMigrationAuthorizationProtoMsg } from "../../../cosmwasm/wasm/v1/authz";
 import { ContractExecutionCompatAuthorization, ContractExecutionCompatAuthorizationProtoMsg } from "../../../injective/wasmx/v1/authz";
+import { StoreCodeAuthorization, StoreCodeAuthorizationProtoMsg, ContractExecutionAuthorization, ContractExecutionAuthorizationProtoMsg, ContractMigrationAuthorization, ContractMigrationAuthorizationProtoMsg } from "../../../cosmwasm/wasm/v1/authz";
 import { BinaryReader, BinaryWriter } from "../../../binary";
 import { DeepPartial, toTimestamp, fromTimestamp } from "../../../helpers";
 import { GlobalDecoderRegistry } from "../../../registry";
@@ -13,6 +13,7 @@ import { GlobalDecoderRegistry } from "../../../registry";
  * @see proto type: cosmos.authz.v1beta1.GenericAuthorization
  */
 export interface GenericAuthorization {
+  $typeUrl?: "/cosmos.authz.v1beta1.GenericAuthorization";
   /**
    * Msg, identified by it's type URL, to grant unrestricted permissions to execute
    */
@@ -47,7 +48,7 @@ export interface GenericAuthorizationAminoMsg {
  * @see proto type: cosmos.authz.v1beta1.Grant
  */
 export interface Grant {
-  authorization?: GenericAuthorization | StoreCodeAuthorization | ContractExecutionAuthorization | ContractMigrationAuthorization | ContractExecutionCompatAuthorization | Any | undefined;
+  authorization?: GenericAuthorization | ContractExecutionCompatAuthorization | StoreCodeAuthorization | ContractExecutionAuthorization | ContractMigrationAuthorization | Any | undefined;
   /**
    * time when the grant will expire and will be pruned. If null, then the grant
    * doesn't have a time expiration (other conditions  in `authorization`
@@ -60,7 +61,7 @@ export interface GrantProtoMsg {
   value: Uint8Array;
 }
 export type GrantEncoded = Omit<Grant, "authorization"> & {
-  authorization?: GenericAuthorizationProtoMsg | StoreCodeAuthorizationProtoMsg | ContractExecutionAuthorizationProtoMsg | ContractMigrationAuthorizationProtoMsg | ContractExecutionCompatAuthorizationProtoMsg | AnyProtoMsg | undefined;
+  authorization?: GenericAuthorizationProtoMsg | ContractExecutionCompatAuthorizationProtoMsg | StoreCodeAuthorizationProtoMsg | ContractExecutionAuthorizationProtoMsg | ContractMigrationAuthorizationProtoMsg | AnyProtoMsg | undefined;
 };
 /**
  * Grant gives permissions to execute
@@ -92,7 +93,7 @@ export interface GrantAminoMsg {
 export interface GrantAuthorization {
   granter: string;
   grantee: string;
-  authorization?: GenericAuthorization | StoreCodeAuthorization | ContractExecutionAuthorization | ContractMigrationAuthorization | ContractExecutionCompatAuthorization | Any | undefined;
+  authorization?: GenericAuthorization | ContractExecutionCompatAuthorization | StoreCodeAuthorization | ContractExecutionAuthorization | ContractMigrationAuthorization | Any | undefined;
   expiration?: Date;
 }
 export interface GrantAuthorizationProtoMsg {
@@ -100,7 +101,7 @@ export interface GrantAuthorizationProtoMsg {
   value: Uint8Array;
 }
 export type GrantAuthorizationEncoded = Omit<GrantAuthorization, "authorization"> & {
-  authorization?: GenericAuthorizationProtoMsg | StoreCodeAuthorizationProtoMsg | ContractExecutionAuthorizationProtoMsg | ContractMigrationAuthorizationProtoMsg | ContractExecutionCompatAuthorizationProtoMsg | AnyProtoMsg | undefined;
+  authorization?: GenericAuthorizationProtoMsg | ContractExecutionCompatAuthorizationProtoMsg | StoreCodeAuthorizationProtoMsg | ContractExecutionAuthorizationProtoMsg | ContractMigrationAuthorizationProtoMsg | AnyProtoMsg | undefined;
 };
 /**
  * GrantAuthorization extends a grant with both the addresses of the grantee and granter.
@@ -153,6 +154,7 @@ export interface GrantQueueItemAminoMsg {
 }
 function createBaseGenericAuthorization(): GenericAuthorization {
   return {
+    $typeUrl: "/cosmos.authz.v1beta1.GenericAuthorization",
     msg: ""
   };
 }
@@ -340,10 +342,10 @@ export const Grant = {
       return;
     }
     GenericAuthorization.registerTypeUrl();
+    ContractExecutionCompatAuthorization.registerTypeUrl();
     StoreCodeAuthorization.registerTypeUrl();
     ContractExecutionAuthorization.registerTypeUrl();
     ContractMigrationAuthorization.registerTypeUrl();
-    ContractExecutionCompatAuthorization.registerTypeUrl();
   }
 };
 function createBaseGrantAuthorization(): GrantAuthorization {
@@ -469,10 +471,10 @@ export const GrantAuthorization = {
       return;
     }
     GenericAuthorization.registerTypeUrl();
+    ContractExecutionCompatAuthorization.registerTypeUrl();
     StoreCodeAuthorization.registerTypeUrl();
     ContractExecutionAuthorization.registerTypeUrl();
     ContractMigrationAuthorization.registerTypeUrl();
-    ContractExecutionCompatAuthorization.registerTypeUrl();
   }
 };
 function createBaseGrantQueueItem(): GrantQueueItem {

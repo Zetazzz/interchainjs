@@ -1,0 +1,1 @@
+export { createInjectiveEthConfig } from './config';

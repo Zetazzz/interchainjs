@@ -1,173 +1,413 @@
-import { TransactionReceipt } from '../types/transaction';
+import { keccak256 } from 'ethereum-cryptography/keccak';
+import { bytesToHex, hexToBytes, utf8ToBytes } from 'ethereum-cryptography/utils';
+import type { TransactionReceipt } from '../types/responses/receipt';
+import type { TransactionParams } from '../types/requests/transaction-params';
+import type { AbiFunctionItem } from '../utils/ContractEncoder';
 
 /**
- * EIP-1193 Provider interface (simplified).
- * Usually, you can use 'any' or refer to the spec:
- * https://eips.ethereum.org/EIPS/eip-1193#request
+ * Minimal EIP-1193 provider interface (MetaMask, etc.)
  */
-export interface EthereumProvider {
-  request: (args: {
-    method: string;
-    params?: any[];
-  }) => Promise<any>;
+export interface EIP1193Provider {
+  request(args: { method: string; params?: any[] | Record<string, any> }): Promise<any>;
 }
 
 /**
- * SignerFromBrowser is a signer class for environments where window.ethereum is available.
- * It delegates signing and broadcasting to the browser wallet (e.g., MetaMask).
+ * Browser signer implemented on top of an injected EIP-1193 provider
+ * (e.g., window.ethereum from MetaMask).
+ *
+ * Supports:
+ * - ETH transfers via eth_sendTransaction
+ * - Contract reads via eth_call (ABI decoding)
+ * - Contract writes via eth_sendTransaction (ABI encoding)
  */
 export class SignerFromBrowser {
-  private provider: EthereumProvider;
+  private provider: EIP1193Provider;
 
-  constructor(ethereum: EthereumProvider) {
-    if (!ethereum || typeof ethereum.request !== 'function') {
-      throw new Error('No valid window.ethereum provided.');
+  constructor(provider: EIP1193Provider) {
+    if (!provider || typeof provider.request !== 'function') {
+      throw new Error('Invalid EIP-1193 provider. Ensure window.ethereum is available.');
     }
-    this.provider = ethereum;
+    this.provider = provider;
+  }
+
+  // ----- Public API -----
+
+  async getAddresses(requestAccess: boolean = true): Promise<string[]> {
+    const method = requestAccess ? 'eth_requestAccounts' : 'eth_accounts';
+    const accounts: string[] = await this.provider.request({ method });
+    return accounts?.map((a) => a.toLowerCase()) ?? [];
+  }
+
+  async getChainId(): Promise<number> {
+    const chainIdHex: string = await this.provider.request({ method: 'eth_chainId' });
+    return Number(chainIdHex);
   }
 
   /**
-   * Poll until the transaction is mined and return the TransactionReceipt.
+   * Send an ETH transaction or arbitrary data transaction.
+   * Returns tx hash and a wait() helper that polls for the receipt.
    */
-  private async pollForReceipt(txHash: string): Promise<TransactionReceipt> {
-    while (true) {
-      const receipt = await this.provider.request({
+  async send(tx: BrowserTxInput): Promise<{
+    transactionHash: string;
+    wait: (timeoutMs?: number, pollIntervalMs?: number) => Promise<TransactionReceipt>;
+  }> {
+    const [fromDefault] = await this.getAddresses();
+    const txReq = normalizeTx({ ...tx, from: tx.from || fromDefault });
+    const transactionHash: string = await this.provider.request({
+      method: 'eth_sendTransaction',
+      params: [txReq]
+    });
+
+    return {
+      transactionHash,
+      wait: (timeoutMs?: number, pollIntervalMs?: number) =>
+        this.waitForReceipt(transactionHash, timeoutMs, pollIntervalMs)
+    };
+  }
+
+  /**
+   * Call a read-only contract method and decode the result according to ABI.
+   */
+  async readContract<T = any>(args: {
+    address: string;
+    abi: AbiFunctionItem[];
+    functionName: string;
+    params?: any[];
+    blockTag?: string;
+    from?: string;
+  }): Promise<T> {
+    const { address, abi, functionName, params = [], from, blockTag } = args;
+    const fn = findAbiFunction(abi, functionName);
+    const data = encodeFunctionData(fn, params);
+
+    const callParams: any = normalizeTx({ from, to: address, data });
+    const callArgs = blockTag ? [callParams, blockTag] : [callParams];
+    const raw: string = await this.provider.request({ method: 'eth_call', params: callArgs });
+    const decoded = decodeFunctionResult(fn, raw);
+    return decoded as T;
+  }
+
+  /**
+   * Call a state-changing contract method by ABI and args.
+   * Returns tx hash and a wait() helper that polls for the receipt.
+   */
+  async writeContract(args: {
+    address: string;
+    abi: AbiFunctionItem[];
+    functionName: string;
+    params?: any[];
+    value?: bigint | number | string;
+    gas?: bigint | number | string;
+    gasPrice?: bigint | number | string;
+    maxFeePerGas?: bigint | number | string;
+    maxPriorityFeePerGas?: bigint | number | string;
+    nonce?: number | string;
+    from?: string;
+    chainId?: number | string;
+  }): Promise<{
+    transactionHash: string;
+    wait: (timeoutMs?: number, pollIntervalMs?: number) => Promise<TransactionReceipt>;
+  }> {
+    const { address, abi, functionName, params = [], ...rest } = args;
+    const fn = findAbiFunction(abi, functionName);
+    const data = encodeFunctionData(fn, params);
+
+    return this.send({ ...rest, to: address, data });
+  }
+
+  // ----- Internals -----
+
+  private async waitForReceipt(
+    txHash: string,
+    timeoutMs: number = 60_000,
+    pollIntervalMs: number = 1_000
+  ): Promise<TransactionReceipt> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const receipt: TransactionReceipt | null = await this.provider.request({
         method: 'eth_getTransactionReceipt',
-        params: [txHash],
+        params: [txHash]
       });
-      if (receipt) {
-        return receipt as TransactionReceipt;
-      }
-      // Wait for 3 seconds before the next check
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      if (receipt) return receipt;
+      await sleep(pollIntervalMs);
     }
-  }
-
-  /**
-   * Request the currently connected account. Returns the first address from the wallet.
-   */
-  public async getAddress(): Promise<string> {
-    // Prompt user to connect accounts if not already connected
-    const accounts: string[] = await this.provider.request({
-      method: 'eth_requestAccounts',
-    });
-    if (!accounts || accounts.length === 0) {
-      throw new Error('No accounts returned by the wallet.');
-    }
-    return accounts[0];
-  }
-
-  /**
-   * Fetch the nonce (transaction count) for the current address.
-   */
-  public async getNonce(): Promise<number> {
-    const address = await this.getAddress();
-    const nonceHex: string = await this.provider.request({
-      method: 'eth_getTransactionCount',
-      params: [address, 'latest'],
-    });
-    return parseInt(nonceHex, 16);
-  }
-
-  /**
-   * Get the chain ID from the wallet.
-   */
-  public async getChainId(): Promise<number> {
-    const chainIdHex: string = await this.provider.request({
-      method: 'eth_chainId',
-      params: [],
-    });
-    return parseInt(chainIdHex, 16);
-  }
-
-  /**
-   * Get the current gas price (in wei) from the wallet's node.
-   */
-  public async getGasPrice(): Promise<bigint> {
-    const gasPriceHex: string = await this.provider.request({
-      method: 'eth_gasPrice',
-      params: [],
-    });
-    return BigInt(gasPriceHex);
-  }
-
-  /**
-   * Get the balance (in wei) for the current address.
-   */
-  public async getBalance(): Promise<bigint> {
-    const address = await this.getAddress();
-    const balanceHex: string = await this.provider.request({
-      method: 'eth_getBalance',
-      params: [address, 'latest'],
-    });
-    return BigInt(balanceHex);
-  }
-
-  /**
-   * Send a legacy (pre-EIP1559) transaction using the browser wallet.
-   * The transaction is signed and broadcast by the wallet.
-   */
-  public async send({
-    to,
-    value,
-    data = '0x' // can be undefined, but wallet will send 0x too
-  }: {
-    to: string,
-    value: bigint,
-    data?: string,
-  }): Promise<{
-    txHash: string;
-    wait: () => Promise<TransactionReceipt>;
-  }> {
-    const from = await this.getAddress();
-    const txParams = {
-      from,
-      to,
-      data,
-      value: '0x' + value.toString(16),
-    };
-
-    // The browser wallet handles user approval, signing, and broadcasting
-    const txHash: string = await this.provider.request({
-      method: 'eth_sendTransaction',
-      params: [txParams],
-    });
-
-    return {
-      txHash,
-      wait: async () => this.pollForReceipt(txHash),
-    };
-  }
-
-  public async sendEIP1559({
-    to,
-    value,
-    data = '0x'
-  }: {
-    to: string,
-    value: bigint,
-    data?: string
-  }): Promise<{
-    txHash: string;
-    wait: () => Promise<TransactionReceipt>;
-  }> {
-    const from = await this.getAddress();
-    const txParams = {
-      type: '0x2', // EIP-1559 transaction
-      from,
-      to,
-      data,
-      value: '0x' + value.toString(16)
-    };
-
-    const txHash: string = await this.provider.request({
-      method: 'eth_sendTransaction',
-      params: [txParams],
-    });
-
-    return {
-      txHash,
-      wait: async () => this.pollForReceipt(txHash),
-    };
+    throw new Error(`Transaction ${txHash} not confirmed within ${timeoutMs}ms`);
   }
 }
+
+// ----- Helpers: time -----
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ----- Helpers: numbers/hex -----
+
+function toHex(value: bigint | number | string | undefined): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string') {
+    if (value.startsWith('0x')) return value;
+    const n = BigInt(value);
+    return '0x' + n.toString(16);
+  }
+  const n = typeof value === 'bigint' ? value : BigInt(value);
+  return '0x' + n.toString(16);
+}
+
+function normalizeTx(tx: BrowserTxInput): Required<Pick<TransactionParams, 'from' | 'to' | 'gas' | 'gasPrice' | 'maxFeePerGas' | 'maxPriorityFeePerGas' | 'value' | 'data' | 'nonce' | 'type' | 'accessList' | 'chainId'>> {
+  return {
+    from: tx.from!,
+    to: tx.to,
+    gas: toHex(tx.gas as any) as any,
+    gasPrice: toHex(tx.gasPrice as any) as any,
+    maxFeePerGas: toHex(tx.maxFeePerGas as any) as any,
+    maxPriorityFeePerGas: toHex(tx.maxPriorityFeePerGas as any) as any,
+    value: toHex(tx.value as any) as any,
+    data: tx.data,
+    nonce: typeof tx.nonce === 'number' ? toHex(tx.nonce) : (tx.nonce as any),
+    type: tx.type,
+    accessList: tx.accessList,
+    chainId: typeof tx.chainId === 'number' ? toHex(tx.chainId) : (tx.chainId as any)
+  };
+}
+
+// ----- Helpers: ABI encoding/decoding -----
+
+function findAbiFunction(abi: AbiFunctionItem[], name: string): AbiFunctionItem {
+  const fn = abi.find((i) => i.type === 'function' && i.name === name);
+  if (!fn) throw new Error(`Function ${name} not found in ABI`);
+  return fn;
+}
+
+function encodeFunctionData(fn: AbiFunctionItem, params: any[]): string {
+  const inputs = (fn.inputs || []).map((i) => i.type);
+  const signature = `${fn.name}(${inputs.join(',')})`;
+  const selector = bytesToHex(keccak256(utf8ToBytes(signature))).slice(0, 8);
+  const encodedArgs = encodeParameters(inputs, params);
+  return '0x' + selector + encodedArgs.slice(2);
+}
+
+function decodeFunctionResult(fn: AbiFunctionItem, data: string): any {
+  const outputs = (fn.outputs || []).map((o) => o.type);
+  if (outputs.length === 0) return undefined;
+  const decoded = decodeParameters(outputs, data);
+  // If single return value, return directly
+  return decoded.length === 1 ? decoded[0] : decoded;
+}
+
+function isDynamicType(t: string): boolean {
+  return t === 'bytes' || t === 'string' || /\[\]$/.test(t);
+}
+
+function strip0x(hex: string): string {
+  return hex.startsWith('0x') ? hex.slice(2) : hex;
+}
+
+function pad32(hex: string): string {
+  return hex.padStart(64, '0');
+}
+
+function encodeUint(value: bigint | number | string): string {
+  const n = typeof value === 'bigint' ? value : BigInt(value);
+  return pad32(n.toString(16));
+}
+
+function encodeBool(value: boolean): string {
+  return pad32(value ? '1' : '0');
+}
+
+function encodeAddress(addr: string): string {
+  const v = strip0x(addr).toLowerCase();
+  return pad32(v);
+}
+
+function encodeFixedBytes(hexValue: string, nBytes: number): string {
+  const v = strip0x(hexValue);
+  const raw = v.slice(0, nBytes * 2);
+  return raw.padEnd(64, '0');
+}
+
+function encodeDynamicBytes(bytesHex: string): string {
+  const raw = strip0x(bytesHex);
+  const len = raw.length / 2;
+  const lenWord = pad32(len.toString(16));
+  const padded = raw.padEnd(Math.ceil(raw.length / 64) * 64, '0');
+  return lenWord + padded;
+}
+
+function encodeString(str: string): string {
+  return encodeDynamicBytes(bytesToHex(utf8ToBytes(str)));
+}
+
+function baseTypeOf(t: string): string {
+  return t.replace(/\[\]$/, '');
+}
+
+function isArrayType(t: string): boolean {
+  return /\[\]$/.test(t);
+}
+
+function encodeSingle(type: string, value: any): string {
+  if (type === 'address') return encodeAddress(value);
+  if (type === 'bool') return encodeBool(value);
+  if (type === 'bytes') return ''; // handled as dynamic in encodeParameters
+  if (type === 'string') return ''; // handled as dynamic in encodeParameters
+  const bytesN = type.match(/^bytes(\d+)$/);
+  if (bytesN) return encodeFixedBytes(value, Number(bytesN[1]));
+  const uintN = type.match(/^u?int(\d+)?$/);
+  if (uintN) return encodeUint(value);
+  // For arrays, handled in encodeParameters
+  return encodeUint(value);
+}
+
+function encodeParameters(types: string[], values: any[]): string {
+  if (types.length !== values.length) throw new Error('Types/values length mismatch');
+
+  // Head and tail per ABI spec
+  const head: string[] = [];
+  const tail: string[] = [];
+
+  // Helper to push dynamic segment and return its offset (in bytes)
+  const addDynamic = (enc: string) => {
+    const offset = 32 * (types.length + tail.join('').length / 64);
+    tail.push(enc);
+    return pad32(offset.toString(16));
+  };
+
+  for (let i = 0; i < types.length; i++) {
+    const t = types[i];
+    const v = values[i];
+
+    if (isArrayType(t)) {
+      // Only support dynamic arrays of simple base types for now
+      const base = baseTypeOf(t);
+      const arr: any[] = v || [];
+      // Encode array length + elements
+      const encElems = arr
+        .map((elem) => encodeSingle(base, elem))
+        .join('');
+      const lenWord = pad32(BigInt(arr.length).toString(16));
+      const enc = lenWord + encElems;
+      const dyn = addDynamic(enc);
+      head.push(dyn);
+      continue;
+    }
+
+    if (isDynamicType(t)) {
+      let enc: string;
+      if (t === 'bytes') enc = encodeDynamicBytes(v);
+      else if (t === 'string') enc = encodeString(v);
+      else throw new Error(`Unsupported dynamic type: ${t}`);
+      const dyn = addDynamic(enc);
+      head.push(dyn);
+    } else {
+      head.push(encodeSingle(t, v));
+    }
+  }
+
+  return '0x' + (head.join('') + tail.join(''));
+}
+
+function readWord(data: string, index: number): string {
+  const off = index * 64;
+  return data.slice(off, off + 64);
+}
+
+function decodeUint(word: string): bigint {
+  return BigInt('0x' + word);
+}
+
+function decodeBool(word: string): boolean {
+  return BigInt('0x' + word) !== 0n;
+}
+
+function decodeAddress(word: string): string {
+  const hex = word.slice(24); // last 20 bytes
+  return '0x' + hex;
+}
+
+function decodeFixedBytes(word: string, nBytes: number): string {
+  return '0x' + word.slice(0, nBytes * 2);
+}
+
+function decodeDynamicBytes(data: string, offsetWord: string): { value: string; consumed: number } {
+  const offset = Number(BigInt('0x' + offsetWord));
+  const tail = data.slice(offset * 2);
+  const len = Number(BigInt('0x' + tail.slice(0, 64)));
+  const bytesHex = tail.slice(64, 64 + len * 2);
+  return { value: '0x' + bytesHex, consumed: 32 + Math.ceil(len / 32) * 32 };
+}
+
+function decodeString(data: string, offsetWord: string): { value: string; consumed: number } {
+  const { value, consumed } = decodeDynamicBytes(data, offsetWord);
+  const bytes = hexToBytes(strip0x(value));
+  const text = new TextDecoder().decode(bytes);
+  return { value: text, consumed };
+}
+
+function decodeParameters(types: string[], dataHex: string): any[] {
+  const data = strip0x(dataHex);
+  const values: any[] = [];
+
+  // First pass reads head words; dynamic types use offsets into tail
+  const headWords = Math.max(types.length, 0);
+  for (let i = 0; i < types.length; i++) {
+    const t = types[i];
+    const word = readWord(data, i);
+
+    if (isArrayType(t)) {
+      const offset = Number(BigInt('0x' + word));
+      const arrHead = data.slice(offset * 2);
+      const len = Number(BigInt('0x' + arrHead.slice(0, 64)));
+      const base = baseTypeOf(t);
+      const arrVals: any[] = [];
+      for (let j = 0; j < len; j++) {
+        const w = arrHead.slice(64 + j * 64, 64 + (j + 1) * 64);
+        arrVals.push(decodeSingleWord(base, w, data));
+      }
+      values.push(arrVals);
+      continue;
+    }
+
+    if (isDynamicType(t)) {
+      if (t === 'bytes') {
+        values.push(decodeDynamicBytes(data, word).value);
+      } else if (t === 'string') {
+        values.push(decodeString(data, word).value);
+      } else {
+        throw new Error(`Unsupported dynamic output type: ${t}`);
+      }
+    } else {
+      values.push(decodeSingleWord(t, word, data));
+    }
+  }
+
+  return values;
+}
+
+function decodeSingleWord(type: string, word: string, fullData: string): any {
+  if (type === 'address') return decodeAddress(word);
+  if (type === 'bool') return decodeBool(word);
+  const bytesN = type.match(/^bytes(\d+)$/);
+  if (bytesN) return decodeFixedBytes(word, Number(bytesN[1]));
+  const uintN = type.match(/^u?int(\d+)?$/);
+  if (uintN) return decodeUint(word);
+  // Fallback to uint decoding
+  return decodeUint(word);
+}
+
+// ----- Types -----
+
+type BrowserTxInput = Omit<
+  TransactionParams,
+  'gas' | 'gasPrice' | 'maxFeePerGas' | 'maxPriorityFeePerGas' | 'value' | 'nonce' | 'chainId'
+> & {
+  from?: string;
+  gas?: bigint | number | string;
+  gasPrice?: bigint | number | string;
+  maxFeePerGas?: bigint | number | string;
+  maxPriorityFeePerGas?: bigint | number | string;
+  value?: bigint | number | string;
+  nonce?: number | string;
+  chainId?: number | string;
+};
